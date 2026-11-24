@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>Esse App/Site é seguro?</title>
+ <link rel="stylesheet" href="css/app.css" />
+ <link rel="stylesheet" href="css/static-engine.css">
+</head>
+<body>
+ <header class="app-header">
+ <div class="brand-row">
+ <div class="brand-badge" aria-hidden="true">🛡️</div>
+ <div>
+ <h1>Esse App/Site é seguro?</h1>
+ <p class="subtitle">Execução 100% local no aparelho • Sem servidor do criador • Sem novas abas</p>
+ </div>
+ </div>
+ </header>
+
+ <main class="container">
+ <section id="status-banner" class="status-banner" aria-live="polite">
+ Tudo pronto no aparelho. Nenhuma verificação automática é 100% confiável — use os resultados para conferência manual.
+ </section>
+
+ <div class="grid-inputs">
+ <!-- OPÇÃO 1: UPLOAD DE ARQUIVO -->
+ <section class="card" aria-labelledby="upload-heading">
+ <h2 id="upload-heading">1. Upload de arquivo</h2>
+ <p class="hint">
+ Limite máximo: <strong>250 MB</strong>. Arquivos acima de <strong>100 MB</strong> exibem aviso de tempo extra na leitura local em blocos.
+ </p>
+
+ <div class="field-group">
+ <label for="file-input" class="file-label">Selecionar arquivo no aparelho</label>
+ <input id="file-input" type="file" accept=".apk,.aab,.xapk,application/vnd.android.package-archive">
+ </div>
+
+ <div id="file-size-warning" class="notice-warning hidden" role="status"></div>
+
+ <div class="actions-row">
+ <button id="btn-analyze-file" type="button" class="btn btn-primary">
+ Verificar aplicativo
+ </button>
+ <button id="btn-clear-temp" type="button" class="btn btn-secondary">
+ Limpar dados temporários
+ </button>
+ </div>
+
+ <div id="file-result" class="result-box" aria-live="polite">
+ Aguardando seleção de arquivo (até 250 MB).
+ </div>
+ </section>
+
+ <!-- OPÇÃO 2: INSERIR URL DO SITE -->
+ <section class="card" aria-labelledby="url-heading">
+ <h2 id="url-heading">2. Inserir URL do site</h2>
+ <p class="hint">
+ Cole o endereço do site para conferir e salvar no aparelho 
+ </p>
+
+ <div class="field-group">
+ <label for="url-input">Endereço do site (ex.: www.site.com.br — não precisa de http://)</label>
+ <input
+ id="url-input"
+ type="text"
+ inputmode="url"
+ placeholder="https://exemplo.com.br"
+ autocomplete="off"
+ />
+ </div>
+
+ <div class="actions-row">
+ <button id="btn-analyze-url" type="button" class="btn btn-primary">
+ Conferir e salvar site
+ </button>
+ <button id="btn-clear-temp-url" type="button" class="btn btn-secondary">
+ Limpar dados temporários
+ </button>
+ </div>
+
+ <div id="url-result" class="result-box" aria-live="polite">
+ Aguardando inserção de uma URL.
+ </div>
+ </section>
+ </div>
+
+ <!-- CANAIS OFICIAIS E ÓRGÃOS DE PROTEÇÃO -->
+ <section class="card channels-card" aria-labelledby="channels-heading">
+ <div class="channels-header">
+ <h2 id="channels-heading">3. Canais Oficiais e Órgãos de Proteção</h2>
+ <p class="hint">
+ Acesso rápido aos portais governamentais e órgãos oficiais para registro de ocorrências, denúncias e defesa dos seus direitos.
+ </p>
+ </div>
+
+ <div class="channels-grid">
+ <!-- CANAL 1: POLÍCIA CIVIL -->
+ <div class="channel-item">
+ <div class="channel-icon">👮‍♂️</div>
+ <div class="channel-info">
+ <h3>Polícia Civil / Delegacias Virtuais Estaduais</h3>
+ <p>Portal do Governo Federal para registro de ocorrência policial. Selecione o serviço ou a Delegacia Virtual do seu estado.</p>
+ <a href="https://www.gov.br/pt-br/servicos/registrar-boletim-de-ocorrencia-online" target="_blank" rel="noopener noreferrer" class="btn-channel">
+ Acessar Delegacias Virtuais ↗
+ </a>
+ </div>
+ </div>
+
+ <!-- CANAL 2: DEFESA DO CONSUMIDOR / PROCONS (NACIONAL) -->
+ <div class="channel-item">
+ <div class="channel-icon">⚖️</div>
+ <div class="channel-info">
+ <h3>Defesa do Consumidor / Procons (Portal Nacional)</h3>
+ <p>Portal Oficial da Secretaria Nacional do Consumidor (SENACON). Localize o Procon ou órgão de atendimento do seu estado ou município.</p>
+ <a href="https://www.gov.br/mj/pt-br/assuntos/seus-direitos/consumidor" target="_blank" rel="noopener noreferrer" class="btn-channel">
+ Portal Nacional do Consumidor ↗
+ </a>
+ </div>
+ </div>
+
+ <!-- CANAL 3: CONSUMIDOR.GOV.BR -->
+ <div class="channel-item">
+ <div class="channel-icon">🤝</div>
+ <div class="channel-info">
+ <h3>Consumidor.gov.br</h3>
+ <p>Plataforma pública e gratuita para solução direta de conflitos de consumo entre consumidores e empresas participantes.</p>
+ <a href="https://consumidor.gov.br/" target="_blank" rel="noopener noreferrer" class="btn-channel">
+ Acessar Consumidor.gov.br ↗
+ </a>
+ </div>
+ </div>
+
+ <!-- CANAL 4: CERT.BR / NIC.BR -->
+ <div class="channel-item">
+ <div class="channel-icon">🔒</div>
+ <div class="channel-info">
+ <h3>CERT.br / NIC.br (Incidentes de Segurança)</h3>
+ <p>Centro de Estudos, Resposta e Tratamento de Incidentes de Segurança no Brasil. Guias de segurança e notificação de incidentes.</p>
+ <a href="https://www.cert.br/" target="_blank" rel="noopener noreferrer" class="btn-channel">
+ Acessar CERT.br ↗
+ </a>
+ </div>
+ </div>
+ </div>
+
+ <div class="channels-disclaimer">
+ ℹ️ <strong>Aviso Informativo:</strong> O aplicativo possui caráter estritamente educativo e informativo e exige a conferência manual do usuário. O aplicativo não realiza registros de ocorrências ou processos jurídicos em nome do usuário e não substitui os órgãos oficiais nem a orientação jurídica especializada.
+ </div>
+ </section>
+
+ <!-- HISTÓRICO E ARMAZENAMENTO LOCAL -->
+ <section class="card history-card" aria-labelledby="history-heading">
+ <div class="history-header">
+ <div>
+ <h2 id="history-heading">Histórico e armazenamento local</h2>
+ <p class="hint">Salvo apenas neste celular.</p>
+ </div>
+ <button id="btn-clear-history" type="button" class="btn btn-danger-outline">
+ Apagar histórico local
+ </button>
+ </div>
+
+ <div id="history-list" class="history-list">
+ Nenhum registro local ainda.
+ </div>
+ </section>
+ </main>
+
+ <script src="js/config.js"></script>
+ <script src="js/local-store.js"></script>
+ <script src="js/stream-reader.js"></script>
+ <script src="js/main.js"></script>
+ <div id="static-report-output">Aguardando arquivo...</div>
+ <script src="js/static-engine.js"></script>
+ <script src="js/static-hook.js"></script>
+
+<div id="modal-termos-lgpd" style="position:fixed;inset:0;z-index:99999;background:rgba(10,14,26,0.96);color:#f8fafc;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
+  <div style="max-width:720px;width:100%;background:#111827;border:1px solid #334155;border-radius:12px;padding:20px;max-height:90vh;overflow-y:auto;line-height:1.5;font-size:14px;">
+    <h2 style="margin-top:0;font-size:18px;color:#38bdf8;">Termo de Serviço, LGPD e Uso Responsável — Esse App/Site é seguro?</h2>
+
+    <p><strong>1. Fins educativos e confiabilidade não absoluta:</strong> Este aplicativo tem <strong>fins educativos</strong> e atua como ferramenta de checagem baseada em listas e regras de segurança. Mesmo contando com uma ampla base de fontes confiáveis, <strong>o aplicativo não é 100% confiável</strong>. Sempre que possível, realize a <strong>conferência manual obrigatória</strong> sobre aquilo que deseja pesquisar ou verificar. Nenhuma verificação automática é 100% confiável e esta checagem não substitui a conferência manual do usuário. Conferência manual obrigatória.</p>
+
+    <p><strong>2. Dois tipos de consulta (offline e online em tempo real):</strong> Informamos expressamente que o aplicativo realiza dois tipos de checagem:
+      <br>• <strong>Consulta offline:</strong> utiliza a base local do aplicativo com a lista offline de órgãos oficiais e fontes confiáveis de checagem salvas no próprio aparelho.
+      <br>• <strong>Consulta online em tempo real:</strong> utiliza <strong>serviços oficiais de consulta na internet</strong> exclusivamente para verificar, em tempo real, a existência, disponibilidade e reputação do site ou aplicativo consultado.
+    </p>
+
+    <p><strong>3. Privacidade e Proteção de Dados (LGPD — Lei nº 13.709/2018):</strong> <strong>Em estrita observância à LGPD (Lei nº 13.709/2018), este aplicativo não salva, não coleta em servidores do criador, não compartilha e não comercializa nenhum dado pessoal dos usuários. Os serviços oficiais de consulta na internet servem exclusivamente para a checagem em tempo real do site ou aplicativo pesquisado. Todo o histórico permanece de forma estritamente local sob o controle exclusivo do usuário em seu aparelho, sem criação de banco de dados pessoais em nuvem.</strong></p>
+
+    <p><strong>4. Legislação sobre crimes cibernéticos:</strong> O uso da ferramenta deve respeitar integralmente as leis vigentes relacionadas a crimes cibernéticos e ilícitos digitais no Brasil, incluindo a <strong>Lei nº 12.737/2012</strong> (crimes cibernéticos / invasão de dispositivo informático), a <strong>Lei nº 12.965/2014</strong> (Marco Civil da Internet), a <strong>Lei nº 14.155/2021</strong> (fraude eletrônica, furto/estelionato mediante fraude digital e majoração de pena para invasão de dispositivo), o <strong>Código Penal Brasileiro (Decreto-Lei nº 2.848/1940)</strong> nos tipos penais aplicáveis a fraudes, falsidades e delitos informáticos, bem como demais normas penais, civis e regulatórias vigentes sobre crimes cibernéticos e segurança da informação.</p>
+
+    <p><strong>5. Isenção de responsabilidade por má-fé:</strong> Declaramos expressamente que <strong>não temos nenhuma responsabilidade legal com o que é feito de má-fé utilizando esse aplicativo</strong>, nem por decisões tomadas sem a <strong>conferência manual obrigatória</strong> ou por condutas ilícitas praticadas por terceiros.</p>
+
+    <p id="status-recusa-termo" style="color:#f87171;font-weight:bold;display:none;">Você recusou os Termos de Serviço. O uso e a instalação/liberação do aplicativo ficam bloqueados enquanto os termos não forem aceitos.</p>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+      <button id="btn-aceitar-termo" type="button" style="background:#16a34a;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:bold;cursor:pointer;">Aceitar Termos</button>
+      <button id="btn-recusar-termo" type="button" style="background:#dc2626;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:bold;cursor:pointer;">Recusar e Bloquear</button>
+    </div>
+  </div>
+</div>
+
+<footer id="rodape-jeovane" style="margin:20px auto;max-width:720px;padding:10px 14px;border-radius:8px;background:#0f172a;border:1px solid #334155;display:flex;align-items:center;gap:10px;color:#e2e8f0;font-size:13px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;font-weight:900;font-size:15px;">J</span><span>Desenvolvedor de aplicativo: <strong>Jeovane Guimarães Araujo</strong> — Conferência manual obrigatória.</span></footer>
+</body>
+</html>

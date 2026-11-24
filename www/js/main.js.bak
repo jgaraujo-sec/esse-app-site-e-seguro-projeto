@@ -1,0 +1,184 @@
+(function () {
+  const store = new LocalStore(APP_CONFIG);
+  const streamReader = new StreamReaderService(APP_CONFIG, store);
+
+  const fileInput = document.getElementById("file-input");
+  const fileSizeWarning = document.getElementById("file-size-warning");
+  const btnAnalyzeFile = document.getElementById("btn-analyze-file");
+  const btnClearTemp = document.getElementById("btn-clear-temp");
+  const fileResult = document.getElementById("file-result");
+
+  const urlInput = document.getElementById("url-input");
+  const btnAnalyzeUrl = document.getElementById("btn-analyze-url");
+  const urlResult = document.getElementById("url-result");
+
+  const historyList = document.getElementById("history-list");
+  const btnClearHistory = document.getElementById("btn-clear-history");
+  const statusBanner = document.getElementById("status-banner");
+
+  function updateFileSizeNotice() {
+    const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+    if (!file) {
+      fileSizeWarning.textContent = "";
+      fileSizeWarning.classList.add("hidden");
+      return;
+    }
+
+    const check = streamReader.validateFileSize(file);
+    if (!check.ok) {
+      fileSizeWarning.textContent = check.message;
+      fileSizeWarning.classList.remove("hidden");
+      return;
+    }
+
+    if (check.aboveWarningThreshold) {
+      fileSizeWarning.textContent = check.warningMessage;
+      fileSizeWarning.classList.remove("hidden");
+    } else {
+      fileSizeWarning.textContent = "";
+      fileSizeWarning.classList.add("hidden");
+    }
+  }
+
+  function renderHistory(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      historyList.textContent = "Nenhum registro local ainda.";
+      return;
+    }
+
+    historyList.innerHTML = "";
+    items.forEach((item) => {
+      const div = document.createElement("div");
+      div.className = "history-item";
+      const timeFormatted = new Date(item.timestamp).toLocaleString("pt-BR");
+      div.textContent = `[${timeFormatted}] Modo: ${item.mode} | Alvo: ${item.target}\n${item.summary}`;
+      historyList.appendChild(div);
+    });
+  }
+
+  async function refreshHistory() {
+    const items = await store.getAnalyses();
+    renderHistory(items);
+  }
+
+  function evaluateUrlLocal(rawUrl) {
+    const trimmed = (rawUrl || "").trim();
+    if (!trimmed) {
+      return {
+        ok: false,
+        message: "Informe uma URL válida começando com http:// ou https://."
+      };
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(trimmed);
+    } catch (_err) {
+      return {
+        ok: false,
+        message: "Formato de URL inválido. Verifique o endereço digitado antes de conferir manualmente."
+      };
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return {
+        ok: false,
+        message: `Protocolo "${parsed.protocol}" não suportado nesta verificação local. Use http:// ou https://.`
+      };
+    }
+
+    const faults = [];
+    if (parsed.protocol === "http:") {
+      faults.push("Uso de protocolo HTTP sem criptografia TLS na URL informada.");
+    }
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(parsed.hostname)) {
+      faults.push("Uso de endereço IP numérico direto em vez de domínio.");
+    }
+
+    const hasFaults = faults.length > 0;
+    const level1Text = hasFaults
+      ? `Nível do erro: Nível 1 (Alerta 1). Falhas identificadas em relação ao site (${parsed.href}): ${faults.join(" ")} ${APP_CONFIG.reliabilityDisclaimer}`
+      : `Nível do erro: Nível 1 (Alerta 1). Não há falha detectável neste site (${parsed.href}) na validação estrutural local. ${APP_CONFIG.reliabilityDisclaimer}`;
+
+    return {
+      ok: true,
+      normalizedUrl: parsed.href,
+      hasFaults,
+      faults,
+      level1Text
+    };
+  }
+
+  fileInput.addEventListener("change", updateFileSizeNotice);
+
+  btnAnalyzeFile.addEventListener("click", async () => {
+    const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+    updateFileSizeNotice();
+
+    const outcome = await streamReader.readFileInChunks(file, (prog) => {
+      fileResult.textContent = `Lendo em blocos localmente: ${prog.percent}% (${formatBytes(prog.bytesRead)} / ${formatBytes(prog.totalBytes)}) • Blocos: ${prog.chunkCount}`;
+    });
+
+    if (!outcome.ok) {
+      fileResult.innerHTML = `<span class="text-nivel-3">${outcome.error}</span>\n${APP_CONFIG.reliabilityDisclaimer}`;
+      await store.saveAnalysis({
+        mode: "Upload de arquivo",
+        target: file ? `${file.name} (${formatBytes(file.size)})` : "Sem arquivo",
+        summary: outcome.error
+      });
+      await refreshHistory();
+      return;
+    }
+
+    const cssClass = outcome.hasFaults ? "text-nivel-2" : "text-nivel-1";
+    fileResult.innerHTML =
+      `<span class="${cssClass}">${outcome.level1Text}</span>\n` +
+      `Arquivo: ${outcome.fileName} (${formatBytes(outcome.fileSize)})\n` +
+      `Blocos lidos: ${outcome.chunkCount} (${formatBytes(outcome.totalBytesRead)}) • Cabeçalho inicial: ${outcome.headerHex}\n` +
+      `Temporários removidos automaticamente ao final da leitura.`;
+
+    statusBanner.textContent = `Leitura local concluída para "${outcome.fileName}". Temporários limpos automaticamente. ${APP_CONFIG.reliabilityDisclaimer}`;
+
+    await store.saveAnalysis({
+      mode: "Upload de arquivo",
+      target: `${outcome.fileName} (${formatBytes(outcome.fileSize)})`,
+      summary: outcome.level1Text
+    });
+    await refreshHistory();
+  });
+
+  btnClearTemp.addEventListener("click", async () => {
+    const removed = await store.clearAllTemps();
+    fileResult.textContent = `Limpeza local executada. Registros temporários removidos: ${removed}. ${APP_CONFIG.reliabilityDisclaimer}`;
+  });
+
+  btnAnalyzeUrl.addEventListener("click", async () => {
+    const evaluation = evaluateUrlLocal(urlInput.value);
+    if (!evaluation.ok) {
+      urlResult.innerHTML = `<span class="text-nivel-3">${evaluation.message}</span>\n${APP_CONFIG.reliabilityDisclaimer}`;
+      return;
+    }
+
+    const cssClass = evaluation.hasFaults ? "text-nivel-2" : "text-nivel-1";
+    urlResult.innerHTML =
+      `<span class="${cssClass}">${evaluation.level1Text}</span>\n` +
+      `URL registrada localmente (sem abrir novas abas): ${evaluation.normalizedUrl}`;
+
+    statusBanner.textContent = `Validação local de URL concluída sem abrir novas abas. ${APP_CONFIG.reliabilityDisclaimer}`;
+
+    await store.saveAnalysis({
+      mode: "Inserção de URL do site",
+      target: evaluation.normalizedUrl,
+      summary: evaluation.level1Text
+    });
+    await refreshHistory();
+  });
+
+  btnClearHistory.addEventListener("click", async () => {
+    await store.clearAnalyses();
+    await refreshHistory();
+    statusBanner.textContent = `Histórico local apagado no aparelho. ${APP_CONFIG.reliabilityDisclaimer}`;
+  });
+
+  refreshHistory();
+})();

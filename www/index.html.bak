@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Esse App/Site é seguro?</title>
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/static-engine.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-row">
+      <div class="brand-badge" aria-hidden="true">🛡️</div>
+      <div>
+        <h1>Esse App/Site é seguro?</h1>
+        <p class="subtitle">Execução 100% local no aparelho • Sem servidor do criador • Sem novas abas</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="status-banner" class="status-banner" aria-live="polite">
+      Tudo pronto no aparelho. Nenhuma verificação automática é 100% confiável — use os resultados para conferência manual.
+    </section>
+
+    <div class="grid-inputs">
+      <!-- OPÇÃO 1: UPLOAD DE ARQUIVO -->
+      <section class="card" aria-labelledby="upload-heading">
+        <h2 id="upload-heading">1. Upload de arquivo</h2>
+        <p class="hint">
+          Limite máximo: <strong>250 MB</strong>. Arquivos acima de <strong>100 MB</strong> exibem aviso de tempo extra na leitura local em blocos.
+        </p>
+
+        <div class="field-group">
+          <label for="file-input" class="file-label">Selecionar arquivo no aparelho</label>
+          <input id="file-input" type="file" />
+        </div>
+
+        <div id="file-size-warning" class="notice-warning hidden" role="status"></div>
+
+        <div class="actions-row">
+          <button id="btn-analyze-file" type="button" class="btn btn-primary">
+            Verificar arquivo no aparelho
+          </button>
+          <button id="btn-clear-temp" type="button" class="btn btn-secondary">
+            Limpar dados temporários
+          </button>
+        </div>
+
+        <div id="file-result" class="result-box" aria-live="polite">
+          Aguardando seleção de arquivo (até 250 MB).
+        </div>
+      </section>
+
+      <!-- OPÇÃO 2: INSERIR URL DO SITE -->
+      <section class="card" aria-labelledby="url-heading">
+        <h2 id="url-heading">2. Inserir URL do site</h2>
+        <p class="hint">
+          Cole o endereço do site para conferir e salvar no aparelho sem abrir novas abas.
+        </p>
+
+        <div class="field-group">
+          <label for="url-input">Endereço do site (começa com http:// ou https://)</label>
+          <input
+            id="url-input"
+            type="url"
+            inputmode="url"
+            placeholder="https://exemplo.com.br"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="actions-row">
+          <button id="btn-analyze-url" type="button" class="btn btn-primary">
+            Conferir e salvar site
+          </button>
+        </div>
+
+        <div id="url-result" class="result-box" aria-live="polite">
+          Aguardando inserção de uma URL.
+        </div>
+      </section>
+    </div>
+
+    <!-- HISTÓRICO E ARMAZENAMENTO LOCAL -->
+    <section class="card history-card" aria-labelledby="history-heading">
+      <div class="history-header">
+        <div>
+          <h2 id="history-heading">Histórico e armazenamento local</h2>
+          <p class="hint">Salvo apenas neste celular.</p>
+        </div>
+        <button id="btn-clear-history" type="button" class="btn btn-danger-outline">
+          Apagar histórico local
+        </button>
+      </div>
+
+      <div id="history-list" class="history-list">
+        Nenhum registro local ainda.
+      </div>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/local-store.js"></script>
+  <script src="js/stream-reader.js"></script>
+  <script src="js/main.js"></script>
+  <div id="static-report-output">Aguardando arquivo...</div>
+  <script src="js/static-engine.js"></script>
+  <script src="js/static-hook.js"></script>
+</body>
+</html>

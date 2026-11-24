@@ -1,0 +1,26 @@
+# Pastas pesadas e geradas automaticamente
+node_modules/
+android/app/build/
+android/build/
+android/.gradle/
+.gradle/
+.idea/
+
+# Configurações locais e segredos
+local.properties
+.env
+.env.*
+
+# Chaves de assinatura e instaladores do Android
+*.jks
+*.keystore
+*.pem
+*.pk8
+*.apk
+*.aab
+
+# Arquivos temporários do sistema
+Thumbs.db
+*.log
+/keystore
+/keystore

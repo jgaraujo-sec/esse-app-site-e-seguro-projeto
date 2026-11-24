@@ -1,0 +1,9 @@
+#static-report-output {
+ margin-top: 12px;
+ padding: 12px;
+ border-radius: 10px;
+ background: rgba(255, 255, 255, 0.05);
+ border: 1px solid rgba(120, 180, 255, 0.35);
+ white-space: pre-line;
+ line-height: 1.45;
+}

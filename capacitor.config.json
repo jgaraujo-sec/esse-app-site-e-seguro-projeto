@@ -1,0 +1,13 @@
+{
+  "appId": "br.com.esseappsiteeseguro.app",
+  "appName": "Esse App/Site é seguro?",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
