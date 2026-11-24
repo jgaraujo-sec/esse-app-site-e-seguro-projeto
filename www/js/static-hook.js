@@ -1,4 +1,5 @@
 (() => {
+ const MAX_BYTES = 250 * 1024 * 1024;
  const runNow = async () => {
  const inp = document.querySelector('input[type="file"]');
  let box = document.getElementById("static-report-output");
@@ -13,6 +14,10 @@
  box.textContent = window.StaticInspectionEngine
  ? " Selecione um arquivo e faça a conferência manual."
  : "Motor estatico nao carregado nesta pagina.";
+ return;
+ }
+ if (f.size > MAX_BYTES) {
+ box.textContent = `O arquivo "${f.name}" excede o limite estrito de 250 MB. A verificação não foi executada.`;
  return;
  }
  if (!window.StaticInspectionEngine || typeof window.StaticInspectionEngine.inspectFileLocally !== "function") {

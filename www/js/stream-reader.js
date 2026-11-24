@@ -19,7 +19,7 @@ class StreamReaderService {
  ok: false,
  exceededMax: true,
  aboveWarningThreshold: true,
- message: `Arquivo bloqueado: o tamanho (${formatBytes(file.size)}) ultrapassa o limite máximo de ${formatBytes(this.config.maxUploadBytes)}.`
+ message: `Arquivo bloqueado: o tamanho (${formatBytes(file.size)}) ultrapassa o limite máximo estrito de 250 MB (${formatBytes(this.config.maxUploadBytes)}). A verificação não foi executada.`
  };
  }
 
