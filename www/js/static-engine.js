@@ -1,11 +1,11 @@
 (() => {
  const MAGIC = [
- { label: "ZIP / APK", exts: [".zip", ".apk", ".jar", ".aab"], m: (b) => b.length >= 4 && b[0] === 0x50 && b[1] === 0x4b },
- { label: "Android DEX", exts: [".dex"], m: (b) => b.length >= 4 && b[0] === 0x64 && b[1] === 0x65 && b[2] === 0x78 && b[3] === 0x0a },
- { label: "MZ / PE", exts: [".exe", ".dll"], m: (b) => b.length >= 2 && b[0] === 0x4d && b[1] === 0x5a },
- { label: "PDF", exts: [".pdf"], m: (b) => b.length >= 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46 },
- { label: "PNG", exts: [".png"], m: (b) => b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 },
- { label: "JPEG", exts: [".jpg", ".jpeg"], m: (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff }
+ { label: "ZIP / APK", exts: [".zip", ".apk", ".jar", ".aab"], m: (b) => b && b.length >= 4 && b[0] === 0x50 && b[1] === 0x4b },
+ { label: "Android DEX", exts: [".dex"], m: (b) => b && b.length >= 4 && b[0] === 0x64 && b[1] === 0x65 && b[2] === 0x78 && b[3] === 0x0a },
+ { label: "MZ / PE", exts: [".exe", ".dll"], m: (b) => b && b.length >= 2 && b[0] === 0x4d && b[1] === 0x5a },
+ { label: "PDF", exts: [".pdf"], m: (b) => b && b.length >= 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46 },
+ { label: "PNG", exts: [".png"], m: (b) => b && b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 },
+ { label: "JPEG", exts: [".jpg", ".jpeg"], m: (b) => b && b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff }
  ];
  const RULES = [
  { cwe: "CWE-95", masvs: "MASVS-CODE", t: "Execucao dinamica (eval/Function)", tip: "Reveja manualmente.", r: /\b(eval|new\s+Function)\s*\(/i },
@@ -23,11 +23,18 @@
  return ok / n >= 0.85;
  };
  async function inspectFileLocally(file) {
- const ext = extOf(file.name);
- const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+ if (!file || typeof file.slice !== "function") {
+ return { formattedText: "Nenhum arquivo válido fornecido.", findingsCount: 0 };
+ }
+ try {
+ const name = String(file.name || "");
+ const ext = extOf(name);
+ const headSlice = await file.slice(0, 64).arrayBuffer();
+ const head = new Uint8Array(headSlice);
  const sig = MAGIC.find((x) => x.m(head)) || null;
  const mis = sig ? (ext && !sig.exts.includes(ext)) : Boolean(ext && [".apk", ".exe", ".pdf", ".png", ".jpg", ".jpeg", ".dex"].includes(ext));
- const buf = new Uint8Array(await file.slice(0, 524288).arrayBuffer());
+ const bufSlice = await file.slice(0, 524288).arrayBuffer();
+ const buf = new Uint8Array(bufSlice);
  const hits = [];
  if (mis) hits.push({ cwe: "CWE-434", masvs: "MASVS-CODE", t: "Extensao diverge da assinatura", tip: ext || "sem extensao" });
  const txtOk = isTxt(buf);
@@ -41,6 +48,9 @@
  if (!hits.length) out.push("• Nenhum padrao disparou.");
  out.push("• A conferencia manual continua obrigatoria.");
  return { formattedText: out.join("\n"), findingsCount: hits.length };
+ } catch (err) {
+ return { formattedText: "Erro ao realizar inspeção estática local: " + (err && err.message ? err.message : "falha de leitura"), findingsCount: 0 };
+ }
  }
  window.StaticInspectionEngine = { inspectFileLocally };
 })();

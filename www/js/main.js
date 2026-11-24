@@ -7,10 +7,40 @@
   const FORMATOS_TXT = ".apk, .aab, .xapk";
   const MSG_INCOMPATIVEL = `Não é possível fazer upload desse formato de arquivo. Formatos de arquivo compatíveis: ${FORMATOS_TXT}.`;
   const HIST_KEY = "esse_app_site_historico_v2";
-  const MAX_FILE_BYTES = 250 * 1024 * 1024; // 250 MB strict limit
+  const MAX_FILE_BYTES = 250 * 1024 * 1024; // 250 MB estrito
+
+  // Fallback de memória seguro para navegação/armazenamento local caso o localStorage esteja indisponível/bloqueado
+  const memoryStorageFallback = new Map();
+  const safeStorage = {
+    getItem(key) {
+      try {
+        if (typeof localStorage !== "undefined") {
+          return localStorage.getItem(key);
+        }
+      } catch (_e) {}
+      return memoryStorageFallback.has(key) ? memoryStorageFallback.get(key) : null;
+    },
+    setItem(key, value) {
+      const strVal = String(value);
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem(key, strVal);
+        }
+      } catch (_e) {}
+      memoryStorageFallback.set(key, strVal);
+    },
+    removeItem(key) {
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(key);
+        }
+      } catch (_e) {}
+      memoryStorageFallback.delete(key);
+    }
+  };
 
   try {
-    localStorage.removeItem("esse_app_site_historico_v1");
+    safeStorage.removeItem("esse_app_site_historico_v1");
     if (typeof indexedDB !== "undefined" && typeof indexedDB.deleteDatabase === "function") {
       indexedDB.deleteDatabase("esse_app_site_seguro_local_db");
     }
@@ -88,7 +118,7 @@
     if (/[^a-z0-9à-á-â-ã-é-ê-í-ó-ô-õ-ú-ç]/i.test(k)) {
       return t.includes(k);
     }
-    // Para termos alfanuméricos normais (ex.: mod, xxx, rat, sex, patch, hack, fake, clone, copia, crack), exige fronteira de palavra/token:
+    // Exige fronteira de palavra/token para evitar falsos positivos por substring em palavras normais (ex. mod em modelo):
     const pattern = "(?:^|[^a-z0-9à-á-â-ã-é-ê-í-ó-ô-õ-ú-ç])" + escapeRegex(k) + "(?:$|[^a-z0-9à-á-â-ã-é-ê-í-ó-ô-õ-ú-ç])";
     const re = new RegExp(pattern, "i");
     return re.test(t);
@@ -271,13 +301,13 @@
     const cYel = acharCodigos(alvo, LISTA_AMPLIADA.amarelos);
     if (cRed.length) {
       const fontes = fontesExatas(`${cRed.join(", ")} ${u.href}`);
-      return { ok: true, cls: "text-nivel-3", url: u.href, fontes, resumo: resumoTopicos("Alerta vermelho", `${cRed.join(", ")} ${u.href}`, u.href, fontes.join(", "), "site") };
+      return { ok: true, cls: "text-nivel-3", url: u.href, fontes, resumo: resumoTopicos("Alerta vermelho", `${cRed.join(", ")} ${u.href}`, escapeHtml(u.href), fontes.join(", "), "site") };
     }
     if (cYel.length) {
       const fontes = fontesExatas(`${cYel.join(", ")} ${u.href}`);
-      return { ok: true, cls: "text-nivel-2", url: u.href, fontes, resumo: resumoTopicos("Alerta amarelo", `${cYel.join(", ")} ${u.href}`, u.href, fontes.join(", "), "site") };
+      return { ok: true, cls: "text-nivel-2", url: u.href, fontes, resumo: resumoTopicos("Alerta amarelo", `${cYel.join(", ")} ${u.href}`, escapeHtml(u.href), fontes.join(", "), "site") };
     }
-    return { ok: true, cls: "text-nivel-1", url: u.href, fontes: ["Google Safe Browsing", "VirusTotal"], resumo: `Alerta verde: ${VERDE_OK_SITE} em ${u.href}. ${MSG_DISC}` };
+    return { ok: true, cls: "text-nivel-1", url: u.href, fontes: ["Google Safe Browsing", "VirusTotal"], resumo: `Alerta verde: ${VERDE_OK_SITE} em ${escapeHtml(u.href)}. ${MSG_DISC}` };
   }
 
   async function avisoSimplesAssinatura(file, nomeLow) {
@@ -307,6 +337,15 @@
   }
 
   async function checarArquivo(file) {
+    if (!file) {
+      return {
+        cls: "text-nivel-incompativel",
+        excedeuLimite: false,
+        texto: "Nenhum arquivo de aplicativo selecionado.",
+        fontes: []
+      };
+    }
+
     const nome = String(file.name || ""), nomeLow = nome.toLowerCase(), tam = Number(file.size || 0);
 
     // REGRA 3: Limite estrito de 250 MB. Não executar checagem se exceder 250 MB.
@@ -314,7 +353,7 @@
       return {
         cls: "text-nivel-incompativel",
         excedeuLimite: true,
-        texto: `Arquivo bloqueado: o aplicativo "${nome}" (${formatBytes(tam)}) excede o limite máximo estrito de 250 MB. A verificação não foi executada. ${MSG_DISC}`,
+        texto: `Arquivo bloqueado: o aplicativo "${escapeHtml(nome)}" (${formatBytes(tam)}) excede o limite máximo estrito de 250 MB. A verificação não foi executada. ${MSG_DISC}`,
         fontes: []
       };
     }
@@ -344,28 +383,49 @@
     const findingsCount = staticRes?.findingsCount || 0;
 
     let cls = "text-nivel-1";
-    let texto = `Alerta verde: ${VERDE_OK_APP} no aplicativo "${nome}" (${formatBytes(tam)}). ${MSG_DISC}`;
+    let texto = `Alerta verde: ${VERDE_OK_APP} no aplicativo "${escapeHtml(nome)}" (${formatBytes(tam)}). ${MSG_DISC}`;
     let fontes = ["VirusTotal", "URLhaus", "Hybrid Analysis", "MalwareBazaar"];
 
     if (hashMal || cRed.length > 0 || findingsCount >= 2) {
       const det = cRed.join(", ") || (findingsCount >= 2 ? "sinais críticos na análise estática" : "anomalia crítica");
       cls = "text-nivel-3";
       fontes = fontesExatas(det);
-      texto = resumoTopicos("Alerta vermelho", det, `aplicativo "${nome}" (${formatBytes(tam)})`, fontes.join(", "), "app");
+      texto = resumoTopicos("Alerta vermelho", det, `aplicativo "${escapeHtml(nome)}" (${formatBytes(tam)})`, fontes.join(", "), "app");
     } else if (cYel.length > 0 || findingsCount === 1) {
       const det = cYel.join(", ") || "sinal moderado na análise estática";
       cls = "text-nivel-2";
       fontes = fontesExatas(det);
-      texto = resumoTopicos("Alerta amarelo", det, `aplicativo "${nome}" (${formatBytes(tam)})`, fontes.join(", "), "app");
+      texto = resumoTopicos("Alerta amarelo", det, `aplicativo "${escapeHtml(nome)}" (${formatBytes(tam)})`, fontes.join(", "), "app");
     }
 
     return { cls, texto, fontes, excedeuLimite: false };
   }
 
-  function lerHistoricoLocal() { try { const raw = localStorage.getItem(HIST_KEY); const arr = raw ? JSON.parse(raw) : []; return Array.isArray(arr) ? arr : []; } catch (_e) { return []; } }
-  function salvarHistoricoLocal(item) { try { const atual = lerHistoricoLocal(); atual.unshift({ timestamp: Date.now(), mode: item.mode || "", target: item.target || "", summary: item.summary || "" }); localStorage.setItem(HIST_KEY, JSON.stringify(atual.slice(0, 50))); } catch (_e) {} }
+  function lerHistoricoLocal() {
+    try {
+      const raw = safeStorage.getItem(HIST_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (_e) {
+      return [];
+    }
+  }
+
+  function salvarHistoricoLocal(item) {
+    try {
+      const atual = lerHistoricoLocal();
+      atual.unshift({
+        timestamp: Date.now(),
+        mode: item.mode || "",
+        target: item.target || "",
+        summary: item.summary || ""
+      });
+      safeStorage.setItem(HIST_KEY, JSON.stringify(atual.slice(0, 50)));
+    } catch (_e) {}
+  }
+
   async function limparHistoricoLocal() {
-    try { localStorage.removeItem(HIST_KEY); } catch (_e) {}
+    try { safeStorage.removeItem(HIST_KEY); } catch (_e) {}
     try { if (typeof store !== "undefined" && store?.clearAnalyses) await store.clearAnalyses(); } catch (_e) {}
     try { if (typeof indexedDB !== "undefined" && typeof indexedDB.databases === "function") { const dbs = await indexedDB.databases(); for (const d of dbs) { if (d?.name && /seguro|esse|store|hist|analis/i.test(d.name)) indexedDB.deleteDatabase(d.name); } } } catch (_e) {}
   }
@@ -374,10 +434,16 @@
     const el = document.getElementById("history-list");
     if (!el) return;
     let lista = lerHistoricoLocal();
-    if (!lista.length) { try { if (typeof store !== "undefined" && store?.getAnalyses) { const sLista = await store.getAnalyses(); if (Array.isArray(sLista) && sLista.length) { lista = sLista; localStorage.setItem(HIST_KEY, JSON.stringify(sLista.slice(0, 50))); } } } catch (_e) {} }
+    if (!lista.length) { try { if (typeof store !== "undefined" && store?.getAnalyses) { const sLista = await store.getAnalyses(); if (Array.isArray(sLista) && sLista.length) { lista = sLista; safeStorage.setItem(HIST_KEY, JSON.stringify(sLista.slice(0, 50))); } } } catch (_e) {} }
     if (!lista.length) { el.innerHTML = ""; el.textContent = "Nenhum registro local ainda."; return; }
     el.innerHTML = "";
-    lista.forEach((item) => { const div = document.createElement("div"); div.className = "history-item"; const dt = item.timestamp ? new Date(item.timestamp).toLocaleString("pt-BR") : ""; div.textContent = `${dt} | ${item.mode || ""} | ${item.target || ""}\n${item.summary || ""}`; el.appendChild(div); });
+    lista.forEach((item) => {
+      const div = document.createElement("div");
+      div.className = "history-item";
+      const dt = item.timestamp ? new Date(item.timestamp).toLocaleString("pt-BR") : "";
+      div.textContent = `${dt} | ${item.mode || ""} | ${item.target || ""}\n${item.summary || ""}`;
+      el.appendChild(div);
+    });
   }
 
   function atualizarIndicadorConexao() {
@@ -453,7 +519,7 @@
         // REGRA 3: Checagem estrita de tamanho > 250 MB na seleção
         if (f.size > MAX_FILE_BYTES) {
           if (fileWarn) {
-            fileWarn.textContent = `Aviso: o arquivo "${f.name}" (${formatBytes(f.size)}) excede o limite estrito de 250 MB. A verificação não será executada.`;
+            fileWarn.textContent = `Aviso: o arquivo "${escapeHtml(f.name)}" (${formatBytes(f.size)}) excede o limite estrito de 250 MB. A verificação não será executada.`;
             fileWarn.classList.remove("hidden");
           }
           if (fileRes) {
@@ -625,55 +691,110 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciarUi); else iniciarUi();
 })();
 
+// FLUXO "ACEITAR TERMOS": controle do modal com proteção contra exceções no localStorage
 (function(){
   const KEY_ACEITE = "esse_app_site_seguro_termo_aceito_v1";
   const KEY_RECUSA = "esse_app_site_seguro_termo_recusado_v1";
-  function bloquearApp(){
-    document.querySelectorAll("button, input, select, textarea").forEach((el) => {
-      if (el.id !== "btn-aceitar-termo" && el.id !== "btn-recusar-termo") {
-        el.disabled = true;
-      }
-    });
-  }
-  function liberarApp(){
-    document.querySelectorAll("button, input, select, textarea").forEach((el) => {
-      el.disabled = false;
-    });
-  }
-  function initTermoGuard(){
-    const modal = document.getElementById("modal-termos-lgpd");
-    const btnAceitar = document.getElementById("btn-aceitar-termo");
-    const btnRecusar = document.getElementById("btn-recusar-termo");
-    const msgRecusa = document.getElementById("status-recusa-termo");
-    if (!modal || !btnAceitar || !btnRecusar) return;
-    const recusado = localStorage.getItem(KEY_RECUSA) === "1";
-    const aceito = localStorage.getItem(KEY_ACEITE) === "1";
-    if (recusado && !aceito) {
-      modal.style.display = "flex";
-      if (msgRecusa) msgRecusa.style.display = "block";
-      bloquearApp();
-    } else if (aceito) {
-      modal.style.display = "none";
-      liberarApp();
-    } else {
-      modal.style.display = "flex";
-      bloquearApp();
+
+  const memoryStorageFallback = new Map();
+  const safeStorage = {
+    getItem(key) {
+      try {
+        if (typeof localStorage !== "undefined") {
+          return localStorage.getItem(key);
+        }
+      } catch (_e) {}
+      return memoryStorageFallback.has(key) ? memoryStorageFallback.get(key) : null;
+    },
+    setItem(key, value) {
+      const strVal = String(value);
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem(key, strVal);
+        }
+      } catch (_e) {}
+      memoryStorageFallback.set(key, strVal);
+    },
+    removeItem(key) {
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(key);
+        }
+      } catch (_e) {}
+      memoryStorageFallback.delete(key);
     }
-    btnAceitar.addEventListener("click", () => {
-      localStorage.setItem(KEY_ACEITE, "1");
-      localStorage.removeItem(KEY_RECUSA);
-      if (msgRecusa) msgRecusa.style.display = "none";
-      modal.style.display = "none";
-      liberarApp();
-    });
-    btnRecusar.addEventListener("click", () => {
-      localStorage.setItem(KEY_RECUSA, "1");
-      localStorage.removeItem(KEY_ACEITE);
-      if (msgRecusa) msgRecusa.style.display = "block";
-      modal.style.display = "flex";
-      bloquearApp();
-    });
+  };
+
+  function bloquearApp(){
+    try {
+      document.querySelectorAll("button, input, select, textarea").forEach((el) => {
+        if (el.id !== "btn-aceitar-termo" && el.id !== "btn-recusar-termo") {
+          el.disabled = true;
+        }
+      });
+    } catch (_e) {}
   }
+
+  function liberarApp(){
+    try {
+      document.querySelectorAll("button, input, select, textarea").forEach((el) => {
+        el.disabled = false;
+      });
+    } catch (_e) {}
+  }
+
+  function initTermoGuard(){
+    try {
+      const modal = document.getElementById("modal-termos-lgpd");
+      const btnAceitar = document.getElementById("btn-aceitar-termo");
+      const btnRecusar = document.getElementById("btn-recusar-termo");
+      const msgRecusa = document.getElementById("status-recusa-termo");
+      if (!modal || !btnAceitar || !btnRecusar) return;
+
+      const recusado = safeStorage.getItem(KEY_RECUSA) === "1";
+      const aceito = safeStorage.getItem(KEY_ACEITE) === "1";
+
+      if (recusado && !aceito) {
+        modal.style.display = "flex";
+        if (msgRecusa) msgRecusa.style.display = "block";
+        bloquearApp();
+      } else if (aceito) {
+        modal.style.display = "none";
+        liberarApp();
+      } else {
+        modal.style.display = "flex";
+        bloquearApp();
+      }
+
+      btnAceitar.addEventListener("click", (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        try {
+          safeStorage.setItem(KEY_ACEITE, "1");
+          safeStorage.removeItem(KEY_RECUSA);
+        } catch (_e) {}
+
+        if (msgRecusa) msgRecusa.style.display = "none";
+        modal.style.display = "none";
+        liberarApp();
+      });
+
+      btnRecusar.addEventListener("click", (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        try {
+          safeStorage.setItem(KEY_RECUSA, "1");
+          safeStorage.removeItem(KEY_ACEITE);
+        } catch (_e) {}
+
+        if (msgRecusa) msgRecusa.style.display = "block";
+        modal.style.display = "flex";
+        bloquearApp();
+      });
+    } catch (_e) {
+      // Fallback de emergência em caso de erro crítico no DOM: libera o app para evitar travamento do usuário
+      try { liberarApp(); } catch (_e2) {}
+    }
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initTermoGuard);
   } else {

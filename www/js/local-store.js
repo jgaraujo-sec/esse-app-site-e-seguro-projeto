@@ -1,6 +1,6 @@
 class LocalStore {
  constructor(config) {
- this.config = config;
+ this.config = config || {};
  this.dbPromise = null;
  this.fallbackAnalyses = [];
  this.fallbackTemps = new Map();
@@ -16,24 +16,31 @@ class LocalStore {
  }
 
  try {
- const request = indexedDB.open(this.config.dbName, this.config.dbVersion);
+ const dbName = this.config.dbName || "esse_app_site_seguro_local_db_v2";
+ const dbVersion = this.config.dbVersion || 1;
+ const request = indexedDB.open(dbName, dbVersion);
 
  request.onupgradeneeded = (event) => {
- const db = event.target.result;
- if (!db.objectStoreNames.contains(this.config.stores.analyses)) {
- db.createObjectStore(this.config.stores.analyses, {
+ try {
+ const db = event.target ? event.target.result : null;
+ if (!db) return;
+ const analysesStore = (this.config.stores && this.config.stores.analyses) || "analyses";
+ const tempStore = (this.config.stores && this.config.stores.tempBuffers) || "temp_buffers";
+ if (!db.objectStoreNames.contains(analysesStore)) {
+ db.createObjectStore(analysesStore, {
  keyPath: "id",
  autoIncrement: true
  });
  }
- if (!db.objectStoreNames.contains(this.config.stores.tempBuffers)) {
- db.createObjectStore(this.config.stores.tempBuffers, {
+ if (!db.objectStoreNames.contains(tempStore)) {
+ db.createObjectStore(tempStore, {
  keyPath: "tempId"
  });
  }
+ } catch (_err) {}
  };
 
- request.onsuccess = (event) => resolve(event.target.result);
+ request.onsuccess = (event) => resolve(event.target ? event.target.result : null);
  request.onerror = () => resolve(null);
  } catch (_err) {
  resolve(null);
@@ -47,7 +54,7 @@ class LocalStore {
  const record = {
  tempId,
  createdAt: new Date().toISOString(),
-...metadata
+ ...(metadata || {})
  };
  this.fallbackTemps.set(tempId, record);
 
@@ -56,8 +63,9 @@ class LocalStore {
 
  return new Promise((resolve) => {
  try {
- const tx = db.transaction(this.config.stores.tempBuffers, "readwrite");
- tx.objectStore(this.config.stores.tempBuffers).put(record);
+ const storeName = (this.config.stores && this.config.stores.tempBuffers) || "temp_buffers";
+ const tx = db.transaction(storeName, "readwrite");
+ tx.objectStore(storeName).put(record);
  tx.oncomplete = () => resolve(record);
  tx.onerror = () => resolve(record);
  } catch (_err) {
@@ -74,8 +82,9 @@ class LocalStore {
 
  return new Promise((resolve) => {
  try {
- const tx = db.transaction(this.config.stores.tempBuffers, "readwrite");
- tx.objectStore(this.config.stores.tempBuffers).delete(tempId);
+ const storeName = (this.config.stores && this.config.stores.tempBuffers) || "temp_buffers";
+ const tx = db.transaction(storeName, "readwrite");
+ tx.objectStore(storeName).delete(tempId);
  tx.oncomplete = () => resolve(true);
  tx.onerror = () => resolve(true);
  } catch (_err) {
@@ -93,8 +102,9 @@ class LocalStore {
 
  return new Promise((resolve) => {
  try {
- const tx = db.transaction(this.config.stores.tempBuffers, "readwrite");
- const store = tx.objectStore(this.config.stores.tempBuffers);
+ const storeName = (this.config.stores && this.config.stores.tempBuffers) || "temp_buffers";
+ const tx = db.transaction(storeName, "readwrite");
+ const store = tx.objectStore(storeName);
  const countReq = store.count();
  countReq.onsuccess = () => {
  count = countReq.result || count;
@@ -111,7 +121,7 @@ class LocalStore {
  async saveAnalysis(entry) {
  const record = {
  timestamp: new Date().toISOString(),
-...entry
+ ...(entry || {})
  };
 
  this.fallbackAnalyses.unshift(record);
@@ -124,8 +134,9 @@ class LocalStore {
 
  return new Promise((resolve) => {
  try {
- const tx = db.transaction(this.config.stores.analyses, "readwrite");
- const addReq = tx.objectStore(this.config.stores.analyses).add(record);
+ const storeName = (this.config.stores && this.config.stores.analyses) || "analyses";
+ const tx = db.transaction(storeName, "readwrite");
+ const addReq = tx.objectStore(storeName).add(record);
  addReq.onsuccess = () => {
  record.id = addReq.result;
  };
@@ -143,11 +154,12 @@ class LocalStore {
 
  return new Promise((resolve) => {
  try {
- const tx = db.transaction(this.config.stores.analyses, "readonly");
- const req = tx.objectStore(this.config.stores.analyses).getAll();
+ const storeName = (this.config.stores && this.config.stores.analyses) || "analyses";
+ const tx = db.transaction(storeName, "readonly");
+ const req = tx.objectStore(storeName).getAll();
  req.onsuccess = () => {
  const rows = Array.isArray(req.result) ? req.result : [];
- resolve(rows.sort((a, b) => (b.id || 0) - (a.id || 0)));
+ resolve(rows.sort((a, b) => (((b && b.id) || 0) - ((a && a.id) || 0))));
  };
  req.onerror = () => resolve([...this.fallbackAnalyses]);
  } catch (_err) {
@@ -163,8 +175,9 @@ class LocalStore {
 
  return new Promise((resolve) => {
  try {
- const tx = db.transaction(this.config.stores.analyses, "readwrite");
- tx.objectStore(this.config.stores.analyses).clear();
+ const storeName = (this.config.stores && this.config.stores.analyses) || "analyses";
+ const tx = db.transaction(storeName, "readwrite");
+ tx.objectStore(storeName).clear();
  tx.oncomplete = () => resolve(true);
  tx.onerror = () => resolve(true);
  } catch (_err) {
